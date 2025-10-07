@@ -36,86 +36,6 @@ int motorUpFreq = 0;
 int motorDownFreq = 0;
 
 
-void setup() {
-	// generic parameters
-	oscPort = 9004;
-	chipName = "Fontaine 32N";
-	eepromMarker = 0xCD;
-	// config : read and write parameters
-	// infos : read only parameters
-	addIntConfig("dmx/address", 1);
-  addIntConfig("motor1/downValue", 8933);
-  addIntConfig("motor1/pauseValue", 8133);
-  addIntConfig("motor1/upValue", 7799);
-  addIntConfig("motor2/downValue", 1733);
-  addIntConfig("motor2/pauseValue", 6733);
-  addIntConfig("motor2/upValue", 8733);
-
-	Serial.begin(115200);
-
-  pinMode(outStrobe1Pin, OUTPUT); 
-  pinMode(outStrobe2Pin, OUTPUT); 
-
-  pinMode(motorUpEnablePin, OUTPUT);
-  pinMode(motorUpPulsePin, OUTPUT);
-  pinMode(motorUpDirPin, OUTPUT);
-
-  pinMode(motorDownEnablePin, OUTPUT);
-  pinMode(motorDownPulsePin, OUTPUT);
-  pinMode(motorDownDirPin, OUTPUT);
-
-
-  digitalWrite(outStrobe1Pin, LOW);
-  digitalWrite(outStrobe2Pin, LOW);
-  
-  digitalWrite(motorUpEnablePin, LOW);
-  digitalWrite(motorUpPulsePin, LOW);
-  digitalWrite(motorUpDirPin, LOW);
-
-  digitalWrite(motorDownEnablePin, LOW);
-  digitalWrite(motorDownPulsePin, LOW);
-  digitalWrite(motorDownDirPin, LOW);
-
-  
-  ledcSetup(strobe1Channel, 60, 10); 
-  ledcSetup(strobe2Channel, 60, 10); 
-  ledcSetup(motorUpChannel, 1000, 10); 
-  ledcSetup(motorDownChannel, 1000, 10); 
-  
-  ledcAttachPin(outStrobe1Pin, strobe1Channel);       // Associer le GPIO au canal PWM
-  ledcAttachPin(outStrobe2Pin, strobe2Channel);       // Associer le GPIO au canal PWM
-  ledcAttachPin(motorUpPulsePin, motorUpChannel);       // Associer le GPIO au canal PWM
-  ledcAttachPin(motorDownPulsePin, motorDownChannel);       // Associer le GPIO au canal PWM
-  
-  ledcWrite(strobe1Channel, 0);
-  ledcWrite(strobe2Channel, 0);
-  ledcWrite(motorUpChannel, 0);
-  ledcWrite(motorDownChannel, 0);
-  
-
-
-	initConfig();
-	setupEthernet();
-	setupWifi();
-	setupOSC();
-	setupWebServer();
-	//setupArtnet();
-	receivePin = 36;
-	setupDMX();
-
-
-	OscWiFi.subscribe(oscPort, "/testSerial", [](const OscMessage &m) { Serial.println("test"); });
-}
-
-
-void loop()
-{
-	vTaskDelay(5);
-}
-
-void configUpdatedMain(String key)
-{
-}
 
 
 
@@ -126,6 +46,8 @@ void onArtnetFrame(uint16_t universeRcv, uint16_t length, uint8_t sequence, uint
 void setStrobeFreq(int v) {
   ledcWriteTone(strobe1Channel, v); 
   ledcWrite(strobe1Channel, strobe1Dimmer);
+  ledcWriteTone(strobe2Channel, v); 
+  ledcWrite(strobe2Channel, strobe2Dimmer);
 }
 
 void setStrobe1Dimmer(int v) {
@@ -168,20 +90,54 @@ void setMotorDownSpeed(int v) {
 void setPump1DMX(uint8_t val) {
   if (actualPump1DmxValue != val) {
     actualPump1DmxValue = val;
-    if (val < 5) {
-      setMotorUpSpeed(0);
+    int stop = 0;
+    int up = config["motor1/reverseValue"].as<int>();
+    int pause = config["motor1/pauseValue"].as<int>();
+    int down = config["motor1/flowValue"].as<int>();
+    int speed = 0;
+    if (val < 81) {
+      speed = map(val, 0, 81, stop, up);
     }
-    else if (val < 127) {
-  	int from = config["motor1/downValue"].as<int>();
+    else if (val < 87) {
+      speed = up;
     }
-    Serial.println("new Pump 1 val : " + String(val));
+    else if (val < 168) {
+      speed = map(val, 87, 167, up, pause);
+    }
+    else if (val < 174) {
+      speed = pause;
+    }
+    else  {
+      speed = map(val, 175, 255, pause, down);
+    }
+    setMotorUpSpeed(speed);
   }
 }
 
 void setPump2DMX(uint8_t val) {
   if (actualPump2DmxValue != val) {
     actualPump2DmxValue = val;
-    Serial.println("new Pump 2 val : " + String(val));
+    int stop = 0;
+    int up = config["motor2/reverseValue"].as<int>();
+    int pause = config["motor2/pauseValue"].as<int>();
+    int down = config["motor2/flowValue"].as<int>();
+    int speed = 0;
+    if (val < 81) {
+      speed = map(val, 0, 81, stop, up);
+    }
+    else if (val < 87) {
+      speed = up;
+    }
+    else if (val < 168) {
+      speed = map(val, 87, 167, up, pause);
+    }
+    else if (val < 174) {
+      speed = pause;
+    }
+    else  {
+      speed = map(val, 175, 255, pause, down);
+    }
+    setMotorDownSpeed(speed);
   }
 }
 
@@ -211,4 +167,97 @@ void onDmxFrame()
 
 void triggerTriggered(String str) {
 
+}
+
+
+void configUpdatedMain(String key)
+{
+  if (key == "strobeFreq") {
+    setStrobeFreq(config["strobeFreq"].as<int>());
+  }
+}
+
+void setup() {
+	// generic parameters
+	oscPort = 9004;
+	chipName = "Fontaine 32N";
+	eepromMarker = 0xAB;
+	// config : read and write parameters
+	// infos : read only parameters
+	addIntConfig("dmx/address", 1);
+  addIntConfig("strobeFreq", 60);
+  addIntConfig("motor1/flowValue", 8933);
+  addIntConfig("motor1/pauseValue", 8133);
+  addIntConfig("motor1/reverseValue", 7799);
+  addIntConfig("motor2/flowValue", 1733);
+  addIntConfig("motor2/pauseValue", 6733);
+  addIntConfig("motor2/reverseValue", 8733);
+
+	Serial.begin(115200);
+	initConfig();
+
+
+  pinMode(outStrobe1Pin, OUTPUT); 
+  pinMode(outStrobe2Pin, OUTPUT); 
+
+  pinMode(motorUpEnablePin, OUTPUT);
+  pinMode(motorUpPulsePin, OUTPUT);
+  pinMode(motorUpDirPin, OUTPUT);
+
+  pinMode(motorDownEnablePin, OUTPUT);
+  pinMode(motorDownPulsePin, OUTPUT);
+  pinMode(motorDownDirPin, OUTPUT);
+
+
+  digitalWrite(outStrobe1Pin, LOW);
+  digitalWrite(outStrobe2Pin, LOW);
+  
+  digitalWrite(motorUpEnablePin, LOW);
+  digitalWrite(motorUpPulsePin, LOW);
+  digitalWrite(motorUpDirPin, LOW);
+
+  digitalWrite(motorDownEnablePin, LOW);
+  digitalWrite(motorDownPulsePin, LOW);
+  digitalWrite(motorDownDirPin, LOW);
+
+  
+  ledcSetup(strobe1Channel, config["strobeFreq"].as<int>(), 10); 
+  ledcSetup(strobe2Channel, config["strobeFreq"].as<int>(), 10); 
+  ledcSetup(motorUpChannel, 1000, 10); 
+  ledcSetup(motorDownChannel, 1000, 10); 
+  
+  ledcAttachPin(outStrobe1Pin, strobe1Channel);       // Associer le GPIO au canal PWM
+  ledcAttachPin(outStrobe2Pin, strobe2Channel);       // Associer le GPIO au canal PWM
+  ledcAttachPin(motorUpPulsePin, motorUpChannel);       // Associer le GPIO au canal PWM
+  ledcAttachPin(motorDownPulsePin, motorDownChannel);       // Associer le GPIO au canal PWM
+  
+  ledcWrite(strobe1Channel, 0);
+  ledcWrite(strobe2Channel, 0);
+  ledcWrite(motorUpChannel, 0);
+  ledcWrite(motorDownChannel, 0);
+  
+
+
+	setupEthernet();
+	setupWifi();
+	setupOSC();
+	setupWebServer();
+	//setupArtnet();
+	receivePin = 36;
+	setupDMX();
+
+  OscWiFi.subscribe(oscPort, "/strobeFreq",     [](const OscMessage& m) { if (m.size()>0) { setStrobeFreq(m.arg<int>(0)); } });
+  OscWiFi.subscribe(oscPort, "/strobe1Dimmer",  [](const OscMessage& m) { if (m.size()>0) { setStrobe1Dimmer(m.arg<float>(0)*1023); } });
+  OscWiFi.subscribe(oscPort, "/strobe2Dimmer",  [](const OscMessage& m) { if (m.size()>0) { setStrobe2Dimmer(m.arg<float>(0)*1023); } });
+  OscWiFi.subscribe(oscPort, "/motorUpSpeed",   [](const OscMessage& m) { if (m.size()>0) { setMotorUpSpeed(m.arg<int>(0)); } });
+  OscWiFi.subscribe(oscPort, "/motorDownSpeed", [](const OscMessage& m) { if (m.size()>0) { setMotorDownSpeed(m.arg<int>(0)); } });
+  OscWiFi.subscribe(oscPort, "/saveReverseData", [](const OscMessage& m) { writeConfig("motor1/reverseValue", motorUpFreq); writeConfig("motor2/reverseValue", motorDownFreq); });
+  OscWiFi.subscribe(oscPort, "/savePauseData", [](const OscMessage& m) {  writeConfig("motor1/pauseValue", motorUpFreq); writeConfig("motor2/pauseValue", motorDownFreq); });
+  OscWiFi.subscribe(oscPort, "/saveFlowData", [](const OscMessage& m) { writeConfig("motor1/flowValue", motorUpFreq); writeConfig("motor2/flowValue", motorDownFreq); });
+}
+
+
+void loop()
+{
+	vTaskDelay(5);
 }
