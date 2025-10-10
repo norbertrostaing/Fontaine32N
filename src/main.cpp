@@ -87,59 +87,69 @@ void setMotorDownSpeed(int v) {
 }
 
 
-void setPump1DMX(uint8_t val) {
+void setPumpsDMX(uint8_t val) {
   if (actualPump1DmxValue != val) {
     actualPump1DmxValue = val;
     int stop = 0;
-    int up = config["motor1/reverseValue"].as<int>();
-    int pause = config["motor1/pauseValue"].as<int>();
-    int down = config["motor1/flowValue"].as<int>();
-    int speed = 0;
+    int up1 = config["motor1/reverseValue"].as<int>();
+    int pause1 = config["motor1/pauseValue"].as<int>();
+    int down1 = config["motor1/flowValue"].as<int>();
+    int speed1 = 0;
+    int up2 = config["motor2/reverseValue"].as<int>();
+    int pause2 = config["motor2/pauseValue"].as<int>();
+    int down2 = config["motor2/flowValue"].as<int>();
+    int speed2 = 0;
     if (val < 81) {
-      speed = map(val, 0, 81, stop, up);
+      speed1 = map(val, 0, 81, stop, up1);
+      speed2 = map(val, 0, 81, stop, up2);
     }
     else if (val < 87) {
-      speed = up;
+      speed1 = up1;
+      speed2 = up2;
     }
     else if (val < 168) {
-      speed = map(val, 87, 167, up, pause);
+      speed1 = map(val, 87, 167, up1, pause1);
+      speed2 = map(val, 87, 167, up2, pause2);
     }
     else if (val < 174) {
-      speed = pause;
+      speed1 = pause1;
+      speed2 = pause2;
     }
     else  {
-      speed = map(val, 175, 255, pause, down);
+      speed1 = map(val, 175, 255, pause1, down1);
+      speed2 = map(val, 175, 255, pause2, down2);
     }
-    setMotorUpSpeed(speed);
+    setMotorUpSpeed(speed1);
+    setMotorDownSpeed(speed2);
   }
 }
 
-void setPump2DMX(uint8_t val) {
-  if (actualPump2DmxValue != val) {
-    actualPump2DmxValue = val;
-    int stop = 0;
-    int up = config["motor2/reverseValue"].as<int>();
-    int pause = config["motor2/pauseValue"].as<int>();
-    int down = config["motor2/flowValue"].as<int>();
-    int speed = 0;
-    if (val < 81) {
-      speed = map(val, 0, 81, stop, up);
-    }
-    else if (val < 87) {
-      speed = up;
-    }
-    else if (val < 168) {
-      speed = map(val, 87, 167, up, pause);
-    }
-    else if (val < 174) {
-      speed = pause;
-    }
-    else  {
-      speed = map(val, 175, 255, pause, down);
-    }
-    setMotorDownSpeed(speed);
-  }
-}
+// void setPump2DMX(uint8_t val) {
+//   if (actualPump2DmxValue != val) {
+//     actualPump2DmxValue = val;
+//     int stop = 0;
+//     int up = config["motor2/reverseValue"].as<int>();
+//     int pause = config["motor2/pauseValue"].as<int>();
+//     int down = config["motor2/flowValue"].as<int>();
+//     int speed = 0;
+//     if (val < 81) {
+//       speed = map(val, 0, 81, stop, up);
+//     }
+//     else if (val < 87) {
+//       speed = up;
+//     }
+//     else if (val < 168) {
+//       speed = map(val, 87, 167, up, pause);
+//     }
+//     else if (val < 174) {
+//       speed = pause;
+//     }
+//     else  {
+//       speed = map(val, 175, 255, pause, down);
+//     }
+//     setMotorDownSpeed(speed);
+//   }
+// }
 
 void setDimmer1DMX(uint8_t val) {
   if (actualDimmer1DmxValue != val) {
@@ -161,8 +171,7 @@ void onDmxFrame()
 	int ad = config["dmx/address"].as<int>();
   setDimmer1DMX(dmxData[ad+0]);
   setDimmer2DMX(dmxData[ad+1]);
-  setPump1DMX(dmxData[ad+2]);
-  setPump2DMX(dmxData[ad+3]);
+  setPumpsDMX(dmxData[ad+2]);
 }
 
 void triggerTriggered(String str) {
