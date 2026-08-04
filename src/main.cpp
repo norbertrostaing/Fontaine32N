@@ -35,7 +35,7 @@ int strobe2Dimmer = 0;
 int motorUpFreq = 0;
 int motorDownFreq = 0;
 
-
+bool pleaseDrop = false;
 
 
 
@@ -91,33 +91,43 @@ void setPumpsDMX(uint8_t val) {
   if (actualPump1DmxValue != val) {
     actualPump1DmxValue = val;
     int stop = 0;
+    int drop1 = config["motor1/dropValue"].as<int>();
     int up1 = config["motor1/reverseValue"].as<int>();
     int pause1 = config["motor1/pauseValue"].as<int>();
     int down1 = config["motor1/flowValue"].as<int>();
     int speed1 = 0;
+    int drop2 = config["motor2/dropValue"].as<int>();
     int up2 = config["motor2/reverseValue"].as<int>();
     int pause2 = config["motor2/pauseValue"].as<int>();
     int down2 = config["motor2/flowValue"].as<int>();
     int speed2 = 0;
-    if (val < 81) {
-      speed1 = map(val, 0, 81, stop, up1);
-      speed2 = map(val, 0, 81, stop, up2);
+    if (val < 60) {
+      speed1 = map(val, 0, 60, stop, drop1);
+      speed2 = map(val, 0, 60, stop, drop2);
     }
-    else if (val < 87) {
+    else if (val < 65) {
+      speed1 = drop1;
+      speed2 = drop2;
+    }
+    else if (val < 125) {
+      speed1 = map(val, 65, 125, drop1, up1);
+      speed2 = map(val, 65, 125, drop2, up2);
+    }
+    else if (val < 130) {
       speed1 = up1;
       speed2 = up2;
     }
-    else if (val < 168) {
-      speed1 = map(val, 87, 167, up1, pause1);
-      speed2 = map(val, 87, 167, up2, pause2);
+    else if (val < 190) {
+      speed1 = map(val, 130, 190, up1, pause1);
+      speed2 = map(val, 130, 190, up2, pause2);
     }
-    else if (val < 174) {
+    else if (val < 195) {
       speed1 = pause1;
       speed2 = pause2;
     }
     else  {
-      speed1 = map(val, 175, 255, pause1, down1);
-      speed2 = map(val, 175, 255, pause2, down2);
+      speed1 = map(val, 195, 255, pause1, down1);
+      speed2 = map(val, 195, 255, pause2, down2);
     }
     setMotorUpSpeed(speed1);
     setMotorDownSpeed(speed2);
@@ -154,14 +164,16 @@ void setPumpsDMX(uint8_t val) {
 void setDimmer1DMX(uint8_t val) {
   if (actualDimmer1DmxValue != val) {
     actualDimmer1DmxValue = val;
-    setStrobe1Dimmer(map(val, 0, 255, 0, 1023));
+    int max = config["strobe1/maxDim1023"].as<int>();
+    setStrobe1Dimmer(map(val, 0, 255, 0, max));
   }
 }
 
 void setDimmer2DMX(uint8_t val) {
   if (actualDimmer2DmxValue != val) {
     actualDimmer2DmxValue = val;
-    setStrobe2Dimmer(map(val, 0, 255, 0, 1023));
+    int max = config["strobe2/maxDim1023"].as<int>();
+    setStrobe2Dimmer(map(val, 0, 255, 0, max));
   }
 }
 
@@ -198,9 +210,13 @@ void setup() {
   addIntConfig("motor1/flowValue", 8933);
   addIntConfig("motor1/pauseValue", 8133);
   addIntConfig("motor1/reverseValue", 7799);
+  addIntConfig("motor1/dropValue", 4600);
   addIntConfig("motor2/flowValue", 1733);
   addIntConfig("motor2/pauseValue", 6733);
   addIntConfig("motor2/reverseValue", 8733);
+  addIntConfig("motor2/dropValue", 0);
+  addIntConfig("strobe1/maxDim1023", 102);
+  addIntConfig("strobe2/maxDim1023", 102);
 
 	Serial.begin(115200);
 	initConfig();
@@ -263,10 +279,24 @@ void setup() {
   OscWiFi.subscribe(oscPort, "/saveReverseData", [](const OscMessage& m) { writeConfig("motor1/reverseValue", motorUpFreq); writeConfig("motor2/reverseValue", motorDownFreq); });
   OscWiFi.subscribe(oscPort, "/savePauseData", [](const OscMessage& m) {  writeConfig("motor1/pauseValue", motorUpFreq); writeConfig("motor2/pauseValue", motorDownFreq); });
   OscWiFi.subscribe(oscPort, "/saveFlowData", [](const OscMessage& m) { writeConfig("motor1/flowValue", motorUpFreq); writeConfig("motor2/flowValue", motorDownFreq); });
+  OscWiFi.subscribe(oscPort, "/saveDropData", [](const OscMessage& m) { writeConfig("motor1/dropValue", motorUpFreq); writeConfig("motor2/dropValue", motorDownFreq); });
+  OscWiFi.subscribe(oscPort, "/DMX1", [](const OscMessage& m) { uint8_t v = m.arg<float>(0)*255.0; setDimmer1DMX(v); });
+  OscWiFi.subscribe(oscPort, "/DMX2", [](const OscMessage& m) { uint8_t v = m.arg<float>(0)*255.0; setDimmer2DMX(v); });
+  OscWiFi.subscribe(oscPort, "/DMX3", [](const OscMessage& m) { uint8_t v = m.arg<float>(0)*255.0; setPumpsDMX(v); });
+  OscWiFi.subscribe(oscPort, "/drop", [](const OscMessage& m) { pleaseDrop = true; });
+
 }
 
 
 void loop()
 {
 	vTaskDelay(5);
+  if (pleaseDrop) {
+    pleaseDrop = false;
+    if (motorUpFreq == 0) {
+      setMotorUpSpeed(2666);
+      delay(100);
+      setMotorUpSpeed(0);
+    }
+  }
 }
