@@ -254,19 +254,19 @@ void setup() {
 	receivePin = 36;
 	setupDMX();
 
-  OscWiFi.getServer(oscPort).subscribe("/strobeFreq",     [](const OscMessage& m) { if (m.size()>0) { setStrobeFreq(m.arg<float>(0)); } });
-  OscWiFi.getServer(oscPort).subscribe("/strobe1Dimmer",  [](const OscMessage& m) { if (m.size()>0) { setStrobe1Dimmer(m.arg<float>(0)*1023); } });
-  OscWiFi.getServer(oscPort).subscribe("/strobe2Dimmer",  [](const OscMessage& m) { if (m.size()>0) { setStrobe2Dimmer(m.arg<float>(0)*1023); } });
-  OscWiFi.getServer(oscPort).subscribe("/motorUpSpeed",   [](const OscMessage& m) { if (m.size()>0) { setMotorUpSpeed(m.arg<int>(0)); } });
-  OscWiFi.getServer(oscPort).subscribe("/motorDownSpeed", [](const OscMessage& m) { if (m.size()>0) { setMotorDownSpeed(m.arg<int>(0)); } });
-  OscWiFi.getServer(oscPort).subscribe("/saveReverseData", [](const OscMessage& m) { writeConfig("motor1/reverseValue", motorUpFreq); writeConfig("motor2/reverseValue", motorDownFreq); });
-  OscWiFi.getServer(oscPort).subscribe("/savePauseData", [](const OscMessage& m) {  writeConfig("motor1/pauseValue", motorUpFreq); writeConfig("motor2/pauseValue", motorDownFreq); });
-  OscWiFi.getServer(oscPort).subscribe("/saveFlowData", [](const OscMessage& m) { writeConfig("motor1/flowValue", motorUpFreq); writeConfig("motor2/flowValue", motorDownFreq); });
-  OscWiFi.getServer(oscPort).subscribe("/saveDropData", [](const OscMessage& m) { writeConfig("motor1/dropValue", motorUpFreq); writeConfig("motor2/dropValue", motorDownFreq); });
-  OscWiFi.getServer(oscPort).subscribe("/DMX1", [](const OscMessage& m) { setDimmer1DMX(m.arg<float>(0)); });
-  OscWiFi.getServer(oscPort).subscribe("/DMX2", [](const OscMessage& m) { setDimmer2DMX(m.arg<float>(0)); });
-  OscWiFi.getServer(oscPort).subscribe("/DMX3", [](const OscMessage& m) { setValuesDMX(m.arg<float>(0)); });
-  OscWiFi.getServer(oscPort).subscribe("/drop", [](const OscMessage& m) { pleaseDrop = true; });
+  oscSubscribe("/strobeFreq",     [](const OscMessage& m) { if (m.size()>0) { setStrobeFreq(m.arg<float>(0)); } });
+  oscSubscribe("/strobe1Dimmer",  [](const OscMessage& m) { if (m.size()>0) { setStrobe1Dimmer(m.arg<float>(0)*1023); } });
+  oscSubscribe("/strobe2Dimmer",  [](const OscMessage& m) { if (m.size()>0) { setStrobe2Dimmer(m.arg<float>(0)*1023); } });
+  oscSubscribe("/motorUpSpeed",   [](const OscMessage& m) { if (m.size()>0) { setMotorUpSpeed(m.arg<int>(0)); } });
+  oscSubscribe("/motorDownSpeed", [](const OscMessage& m) { if (m.size()>0) { setMotorDownSpeed(m.arg<int>(0)); } });
+  oscSubscribe("/saveReverseData", [](const OscMessage& m) { writeConfig("motor1/reverseValue", motorUpFreq); writeConfig("motor2/reverseValue", motorDownFreq); });
+  oscSubscribe("/savePauseData", [](const OscMessage& m) {  writeConfig("motor1/pauseValue", motorUpFreq); writeConfig("motor2/pauseValue", motorDownFreq); });
+  oscSubscribe("/saveFlowData", [](const OscMessage& m) { writeConfig("motor1/flowValue", motorUpFreq); writeConfig("motor2/flowValue", motorDownFreq); });
+  oscSubscribe("/saveDropData", [](const OscMessage& m) { writeConfig("motor1/dropValue", motorUpFreq); writeConfig("motor2/dropValue", motorDownFreq); });
+  oscSubscribe("/DMX1", [](const OscMessage& m) { setDimmer1DMX(m.arg<float>(0)); });
+  oscSubscribe("/DMX2", [](const OscMessage& m) { setDimmer2DMX(m.arg<float>(0)); });
+  oscSubscribe("/DMX3", [](const OscMessage& m) { setValuesDMX(m.arg<float>(0)); });
+  oscSubscribe("/drop", [](const OscMessage& m) { pleaseDrop = true; });
 
 }
 
